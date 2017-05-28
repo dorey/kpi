@@ -254,10 +254,15 @@
   &--highlighted {
     margin-left: 10px;
     display: inline-block;
-    padding: 6px 10px;
+    padding: 2px 15px;
     color: $cool-green;
     background: #ebebed;
     border-radius: 5px;
+  }
+  &--sourcetag {
+    margin: 0;
+    width: 100%;
+    text-align: center;
   }
 
   &--warning {
@@ -373,7 +378,7 @@
         width: 34%;
       }
 
-      &--language-name, &--code {
+      &--language-name {
         input {
           border-color: transparent;
           background: transparent;
@@ -384,9 +389,12 @@
           }
         }
       }
+      &--progress {
+        width: 32%;
+      }
     }
 
-    &:hover {
+    &:nth-child(n+2):hover {
       background: $hover-asset-row;
 
       .form-view__label--language-name,

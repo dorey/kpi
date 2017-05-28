@@ -35,6 +35,7 @@ import Drawer from './components/drawer';
 import {
   AddToLibrary,
   FormPage,
+  TranslatedFormPage,
   LibraryPage
 } from './components/formEditors';
 
@@ -647,6 +648,7 @@ var routes = (
         <Route path="json" component={FormJson} />
         <Route path="xform" component={FormXform} />
         <Route path="edit" component={FormPage} />
+        <Route path="edittx/:txname" component={TranslatedFormPage} />
 
         <Route path="landing">
           <IndexRoute component={FormLanding} />

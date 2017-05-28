@@ -27,6 +27,131 @@ import {
 
 let typingTimer;
 
+
+const TranslationProgressBar = React.createClass({
+  getInitialState() {
+    return {
+      pixelWidth: `${this.props.pct * 100}%`,
+    };
+  },
+  render () {
+    return (
+        <div>
+          <div style={{
+            width: '80%',
+            height: 16,
+            display: 'inline-block',
+            overflow: 'hidden',
+            borderRadius: 2,
+            backgroundColor: '#daf6ed',
+          }}>
+            <div style={{
+              width: this.state.pixelWidth,
+              height: 16,
+              backgroundColor: '#1ec185',
+              display: 'inline-block',
+            }}>
+              {' '}
+            </div>
+          </div>
+          <span style={{
+            float: 'right',
+          }}>
+            {this.state.pixelWidth}
+          </span>
+        </div>
+      )
+  },
+});
+
+const TranslationItem = React.createClass({
+  getInitialState () {
+    return {
+      name: this.props.name,
+      code: this.props.code,
+    };
+  },
+  render () {
+    let l = this.props;
+    return (
+      <bem.FormView__group m="items" key={this.props.code} >
+        <bem.FormView__label m='language-name'>
+          <AutosizeInput type="text"
+                data-langCode={l.code}
+                name="langName"
+                value={l.name}
+                onKeyPress={this.nameValidate}
+                onChange={this.langChange}
+          />
+          <AutosizeInput type="text"
+                data-langName={l.name}
+                name="langCode"
+                style={{float: 'right'}}
+                value={l.code}
+                onKeyPress={this.codeValidate}
+                onChange={this.langChange}
+          />
+        </bem.FormView__label>
+        <bem.FormView__label m='progress'>
+          {
+            this.props.source ? (
+                <bem.FormView__cell m={['highlighted', 'sourcetag']}>
+                  {t('Source')}
+                </bem.FormView__cell>
+              ) : (
+                <TranslationProgressBar pct={0.10} />
+              )
+          }
+        </bem.FormView__label>
+        <bem.FormView__label m='buttons'>
+          <bem.FormView__link m='edit'
+              data-tip={t('Edit this translation')}
+              data-language={`${l.name} (${l.code})`}
+              onClick={this.setActiveLanguage}>
+            <i className="k-icon-edit" />
+          </bem.FormView__link>
+        </bem.FormView__label>
+      </bem.FormView__group>
+    );
+  },
+});
+
+const TranslationList = React.createClass({
+  getInitialState () {
+    return {
+      translations: this.props.content.translations,
+    }
+  },
+  langChange () {
+
+  },
+  render () {
+    let translations = this.state.translations.map(function(name, n){
+      return {
+        name: name,
+        code: `t${n}`,
+      }
+    });
+    return (
+      <bem.FormView__cell m={['padding', 'bordertop', 'languages']}>
+        <bem.FormView__group m={["headings", "items"]}>
+          <bem.FormView__label m='language'>{t('Translations')}</bem.FormView__label>
+          <bem.FormView__label m='buttons'></bem.FormView__label>
+        </bem.FormView__group>
+        {translations &&
+          translations.map((l, n) => {
+            return (
+                <TranslationItem name={l.name}
+                  source={n===0}
+                  code={l.code} key={l.code}
+                />
+              );
+        })}
+      </bem.FormView__cell>
+    );
+  }
+});
+
 var FormLanding = React.createClass({
   mixins: [
     mixins.droppable,
@@ -44,17 +169,19 @@ var FormLanding = React.createClass({
   },
   assetStoreChange(data) {
     var langList = [];
-    this.state.content.translations.map((l, n) => {
-      var langName = l.split('(');
-      var langCode = langName[1].split(')');
+    // this.state.content.translations.map((l, n) => {
+    //   var langName = l.split('(');
+    //   var langCode = langName[1].split(')');
 
-      langList[n] = {
-        code: langCode[0], 
-        name: langName[0].trim()
-      };
-    });
+    //   langList[n] = {
+    //     code: langCode[0],
+    //     name: langName[0].trim()
+    //   };
+    // });
+    log('this.state.content.translations', this.state.content.translations);
     this.setState({
-      langList: langList
+      // langList: langList,
+      langList: this.state.content.translations,
     });
   },
   enketoPreviewModal (evt) {
@@ -65,37 +192,37 @@ var FormLanding = React.createClass({
     });
   },
   langChange (evt) {
-    var langList = this.state.langList;
-    var langName = evt.target.getAttribute('data-langName') || evt.target.value;
-    var index = evt.target.getAttribute('data-index');
-    var langCode = evt.target.getAttribute('data-langCode') || evt.target.value;
+    // var langList = this.state.langList;
+    // var langName = evt.target.getAttribute('data-langName') || evt.target.value;
+    // var index = evt.target.getAttribute('data-index');
+    // var langCode = evt.target.getAttribute('data-langCode') || evt.target.value;
 
-    langList[index] = {
-      code: langCode, 
-      name: langName
-    }
-    this.setState({
-      langList: langList
-    });
+    // langList[index] = {
+    //   code: langCode, 
+    //   name: langName
+    // }
+    // this.setState({
+    //   langList: langList
+    // });
 
-    clearTimeout(typingTimer);
+    // clearTimeout(typingTimer);
 
-    typingTimer = setTimeout(() => { 
-      if (!langName && !langCode) {
-        alertify.error(t('The language name or code cannot be empty.'));
-      } else {
-        var content = this.state.content;
-        langList.map((l, n) => {
-          content.translations[n] = `${l.name} (${l.code})`;
-        });
+    // typingTimer = setTimeout(() => { 
+    //   if (!langName && !langCode) {
+    //     alertify.error(t('The language name or code cannot be empty.'));
+    //   } else {
+    //     var content = this.state.content;
+    //     langList.map((l, n) => {
+    //       content.translations[n] = `${l.name} (${l.code})`;
+    //     });
 
-        actions.resources.updateAsset(
-          this.state.uid, {
-            translations: JSON.stringify(content.translations)
-          }
-        );
-      }
-    }, 1000);
+    //     actions.resources.updateAsset(
+    //       this.state.uid, {
+    //         translations: JSON.stringify(content.translations)
+    //       }
+    //     );
+    //   }
+    // }, 1000);
 
   },
   nameValidate(e) {
@@ -141,60 +268,8 @@ var FormLanding = React.createClass({
   },
   renderFormLanguages () {
     return (
-      <bem.FormView__cell m={['padding', 'bordertop', 'languages']}>
-        <bem.FormView__group m={["headings", "items"]}>
-          <bem.FormView__label m='language-name'>{t('Language')}</bem.FormView__label>
-          <bem.FormView__label m='code'>{t('Language code')}</bem.FormView__label>
-          <bem.FormView__label m='progress'>{t('Translation Progress')}</bem.FormView__label>
-          <bem.FormView__label m='buttons'></bem.FormView__label>
-        </bem.FormView__group>
-        {this.state.langList &&
-          this.state.langList.map((l, n) => {
-          return (
-            <bem.FormView__group m="items" key={n} >
-              <bem.FormView__label m='language-name'>
-                <AutosizeInput type="text"
-                      data-index={n}
-                      data-langCode={l.code}
-                      name="langName"
-                      value={l.name}
-                      onKeyPress={this.nameValidate}
-                      onChange={this.langChange}
-                />
-
-                { n < 1 &&
-                  <bem.FormView__cell m='highlighted'>
-                    {t('Source')}
-                  </bem.FormView__cell>
-                }
-
-              </bem.FormView__label>
-              <bem.FormView__label m='code'>
-                <AutosizeInput type="text"
-                      data-index={n}
-                      data-langName={l.name}
-                      name="langCode"
-                      value={l.code}
-                      onKeyPress={this.codeValidate}
-                      onChange={this.langChange}
-                />
-              </bem.FormView__label>
-              <bem.FormView__label m='progress'>
-                
-              </bem.FormView__label>
-              <bem.FormView__label m='buttons'>
-                <bem.FormView__link m='edit'
-                    data-tip={t('Edit this translation')}
-                    data-language={`${l.name} (${l.code})`}
-                    onClick={this.setActiveLanguage}>
-                  <i className="k-icon-edit" />
-                </bem.FormView__link>
-              </bem.FormView__label>
-            </bem.FormView__group>
-          );
-        })}
-      </bem.FormView__cell>
-    );
+        <TranslationList content={this.state.content} />
+      );
   },
   sharingModal (evt) {
     evt.preventDefault();

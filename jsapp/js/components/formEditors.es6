@@ -6,6 +6,7 @@ import alertify from 'alertifyjs';
 import newFormMixin from '../editorMixins/newForm';
 import editableFormMixin from '../editorMixins/editableForm';
 import existingFormMixin from '../editorMixins/existingForm';
+import {translatedFormMixin} from '../editorMixins/translatedForm';
 import Select from 'react-select';
 import ui from '../ui';
 import bem from '../bem';
@@ -378,6 +379,12 @@ let existingFormMixins = [
 export var FormPage = React.createClass({
   mixins: existingFormMixins
 });
+
+export var TranslatedFormPage = React.createClass({
+  mixins: [].concat(existingFormMixins, translatedFormMixin),
+});
+
+console.log('abc', translatedFormMixin);
 
 export var LibraryPage = React.createClass({
   mixins: existingFormMixins

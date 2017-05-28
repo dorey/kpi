@@ -585,8 +585,8 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
             return 0
         return obj.deployment.submission_count
 
-    def _content(self, obj):
-        return json.dumps(obj.content)
+    # def _content(self, obj):
+    #     return json.dumps(obj.content)
 
     def _table_url(self, obj):
         request = self.context.get('request', None)
