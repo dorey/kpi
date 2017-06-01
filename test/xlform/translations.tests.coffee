@@ -1,10 +1,19 @@
 {expect} = require('../helper/fauxChai')
 
 $inputParser = require("../../jsapp/xlform/src/model.inputParser")
+$translationUtils = require("../../jsapp/xlform/src/model.translationUtils")
 $survey = require("../../jsapp/xlform/src/model.survey")
 
 describe " translations set proper values ", ->
   process = (src)->
+    # $translationUtils.add_translation_list(parsed)
+    # parsed = $inputParser.parse(src)
+    new $survey.Survey(src)
+
+  process_and_reorder = (src, translation)->
+    $translationUtils.add_translation_list(src)
+    $translationUtils.prioritize_translation(src, translation)
+    log JSON.stringify(src, null, 4)
     parsed = $inputParser.parse(src)
     new $survey.Survey(parsed)
 
@@ -15,6 +24,7 @@ describe " translations set proper values ", ->
             label: "VAL1",
             name: "val1",
           ]
+        translations: [null]
       )
     survey2 = process(
         survey: [
@@ -67,6 +77,37 @@ describe " translations set proper values ", ->
     # but in this case there is no null in the translations list so it should
     # throw an error
     expect(run).toThrow()
+
+  it 'adds translation list', ->
+    # process_and_reorder
+
+  it 'reorders internally', ->
+    src = {
+      survey: [
+        type: 'text'
+        label: ['L1', 'L2']
+        name: 'q1'
+      ]
+      translations: ['T1', 'T2']
+      translated: ['label']
+    }
+    $translationUtils.add_translation_list src
+    $translationUtils.prioritize_translation src, 'T2'
+    log(JSON.stringify(src))
+
+  it 'properly reorders', ->
+    survey = process_and_reorder({
+        survey: [
+          type: 'text'
+          label: ['L1', 'L2']
+          name: 'q1'
+        ]
+        translations: ['T1', 'T2']
+        translated: ['label']
+      },
+        'T2'
+      )
+    expect(survey.active_translation_name).toEqual('T2')
 
   it 'example 1', ->
     survey = process(

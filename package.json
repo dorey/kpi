@@ -54,7 +54,7 @@
     "gulp-clean": "^0.3.1",
     "gulp-coffeeify": "^0.1.8",
     "gulp-mocha-phantomjs": "^0.10.1",
-    "immutable": "^3.4.7",
+    "immutable": "^3.8.1",
     "jit-grunt": "^0.9.1",
     "jquery": "^2.1.4",
     "jquery-ui": "1.10.4",

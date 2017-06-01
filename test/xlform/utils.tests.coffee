@@ -168,31 +168,30 @@ do ->
           expect(_out).toBe(exps)
 
 describe 'model.translationUtils', ->
-  fn = $translationUtils.tx_strings_to_objects
-  fn2 = $translationUtils.tx_string_to_object
+  fn = $translationUtils._tx_string_to_object
 
   it 'converts translation list to objects', ->
-    expect(fn(['English', 'French', 'Spanish'])).toEqual(
+    expect(['English', 'French', 'Spanish'].map(fn)).toEqual(
       [
         {
           name: 'English'
-          index: 0
+          order: 0
         }
         {
           name: 'French'
-          index: 1
+          order: 1
         }
         {
           name: 'Spanish'
-          index: 2
+          order: 2
         }
       ])
 
   it 'extracts codes', ->
-    expect(fn2('English(en)', 0)).toEqual(
+    expect(fn('English(en)', 0)).toEqual(
         name: 'English'
         code: 'en'
-        index: 0
+        order: 0
       )
 
   it 'sets $uid', ->
@@ -215,32 +214,66 @@ describe 'model.translationUtils', ->
     expect(item3['$uid']).toEqual('abcdef')
 
 
-  it 'reorders translated fields', ->
-    surv = {
-      survey: [
+  describe 'reorders translated fields', ->
+    copy_obj = (obj)->
+      JSON.parse(JSON.stringify(obj))
+
+    surv = ->
+      {
+        survey: [
+          {
+            label: ['Lang1', 'Lang2']
+            type: 'select_one'
+            select_from_list_name: 'cl1'
+            name: 'somename'
+          }
+        ]
+        choices: [
+          {
+            list_name: 'cl1'
+            label: ['L1C1', 'L2C1']
+          }
+          {
+            list_name: 'cl1'
+            label: ['L1C2', 'L2C2']
+          }
+        ]
+        translations: ['Lang1', 'Lang2']
+        translated: ['label']
+      }
+
+    it 'fails without translation_list', ->
+      run = ->
+        $translationUtils.prioritize_translation(surv(), 'Lang2')
+      expect(run).toThrow()
+
+    it 'changes nothing when nothing should change', ->
+      _s = surv()
+      $translationUtils.add_translation_list(_s)
+      _s0 = copy_obj(_s)
+      $translationUtils.prioritize_translation(_s, 'Lang1')
+      expect(_s0).toEqual(_s)
+
+    it 'changes order when order should change', ->
+      _s = surv()
+      $translationUtils.add_translation_list(_s)
+      _s0 = copy_obj(_s)
+      $translationUtils.prioritize_translation(_s, 'Lang2')
+      expect(_s0).not.toEqual(_s)
+      expect(_s0.survey).toEqual(_s.survey)
+      expect(_s.translation_list).toEqual([
         {
-          label: ['Lang1', 'Lang2']
-          type: 'select_one'
-          select_from_list_name; 'cl1'
-          name: 'somename'
-        }
-      ]
-      choices: [
-        {
-          list_name: 'cl1'
-          label: ['L1C1', 'L2C1']
+          name: 'Lang1',
+          order: 1,
         }
         {
-          list_name: 'cl1'
-          label: ['L1C2', 'L2C2']
+          name: 'Lang2',
+          order: 0,
         }
-      ]
-      translations: ['Lang1', 'Lang2']
-      translated: ['label']
-    }
-    output = $translationUtils.prioritize_translation(surv, 'Lang2')
-    expect(output.survey[0].label[0]).toEqual('Lang2')
-    expect(output.choices[0].label[0]).toEqual('L2C1')
+      ])
+
+    # expect(output.survey[0].label[0]).toEqual('Lang2')
+    # expect(output.choices[0].label[0]).toEqual('L2C1')
     # expect(output.translation_list).toEqual([
     #   {
     #     name: 'Lang2'

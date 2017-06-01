@@ -134,6 +134,9 @@ do ->
           'translations': [
             null
           ],
+          'translations_list': [
+            {'name':null},
+          ]
         })
     describe 'survey row reordering', ->
       beforeEach ->

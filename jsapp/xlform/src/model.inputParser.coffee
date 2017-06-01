@@ -31,7 +31,8 @@ module.exports = do ->
     for key, val of item
       if _.isArray(val)
         delete item[key]
-        _.map(translations, (_t, i)->
+        _.map(translations, (translation_obj, i)->
+          _t = translation_obj.name
           _translated_val = val[i]
           if _t
             lang_str = "#{key}::#{_t}"
@@ -71,6 +72,9 @@ module.exports = do ->
         throw new Error("unmatched group/repeat")
       grpStack[_l-1]
 
+    if not translations
+      throw new Error('no translations')
+
     for item in sArr
       _groupAtts = $aliases.q.testGroupable(item.type)
 
@@ -95,41 +99,23 @@ module.exports = do ->
 
   inputParser.parseArr = parseArr
   inputParser.parse = (o)->
-    translations = o.translations
-    if o['#active_translation_name']
-      _existing_active_translation_name = o['#active_translation_name']
-      delete o['#active_translation_name']
+    t_list = o.translation_list
+    if not t_list
+      t_list = [{name: null}]
 
-    if translations
-      if translations.indexOf(null) is -1 # there is no unnamed translation
-        if _existing_active_translation_name
-          throw new Error('active translation set, but cannot be found')
-        o._active_translation_name = translations[0]
-        translations[0] = null
-      else if translations.indexOf(null) > 0
-        throw new Error("""
-                        unnamed translation must be the first (primary) translation
-                        translations need to be reordered or unnamed translation needs
-                        to be given a name
-                        """)
-      else if _existing_active_translation_name # there is already an active null translation
-        o._active_translation_name = _existing_active_translation_name
-    else
-      translations = [null]
-
-    # sorts groups and repeats into groups and repeats (recreates the structure)
     if o.survey
-      o.survey = parseArr('survey', o.survey, translations)
+      o.survey = parseArr('survey', o.survey, t_list)
 
     if o.choices
-      o.choices = parseArr('choices', o.choices, translations)
+      o.choices = parseArr('choices', o.choices, t_list)
 
     # settings is sometimes packaged as an array length=1
     if o.settings and _.isArray(o.settings) and o.settings.length is 1
       o.settings = o.settings[0]
 
-    o.translations = translations
-
+    o.translation_list = t_list
+    o.translations = _.pluck(t_list, 'name')
+    log(o.translation_list)
     o
 
   inputParser.loadChoiceLists = (passedChoices, choices)->

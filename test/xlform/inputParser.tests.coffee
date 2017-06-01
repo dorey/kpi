@@ -27,7 +27,10 @@ do ->
           results = $inputParser.parseArr('survey', [
               {type: 'text', name: 'q1', label: ['q1x', 'q1null']},
               {type: 'text', name: 'q2', label: ['q2x', 'q2null']},
-            ], ['lx', null])
+            ], [
+              {name: 'lx'},
+              {name: null},
+              ])
           expect(results).toEqual([
               {
                 type: 'text', name: 'q1',
@@ -42,7 +45,37 @@ do ->
             ])
 
         it 'flattens translated lists 2', ->
-          translations = ['lx', 'ly']
+          # translations must now be defined as a list of objects
+          translations = [
+            {name: 'lx', order: 1}
+            {name: 'ly', order: 0}
+          ]
+          results = $inputParser.parseArr('survey', [
+              {type: 'text', name: 'q1', label: ['q1x', 'q1y']},
+              {type: 'text', name: 'q2', label: ['q2x', 'q2y']},
+            ], translations)
+
+          expected = [
+              {
+                type: 'text', name: 'q1',
+                'label::lx': 'q1x',
+                'label::ly': 'q1y',
+              },
+              {
+                type: 'text', name: 'q2',
+                'label::lx': 'q2x',
+                'label::ly': 'q2y',
+              },
+            ]
+          for i in [0, 1]
+            expect(results[i]).toEqual(expected[i])
+
+        it 'flattens translated lists 3', ->
+          # different 'order' values. same results
+          translations = [
+            {name: 'lx', order: 1}
+            {name: 'ly', order: 0}
+          ]
           results = $inputParser.parseArr('survey', [
               {type: 'text', name: 'q1', label: ['q1x', 'q1y']},
               {type: 'text', name: 'q2', label: ['q2x', 'q2y']},
@@ -68,6 +101,8 @@ do ->
             {type: 'begin group', name: 'grp1'},
             {type: 'text', name: 'q1'},
             {type: 'end group'},
+          ], [
+            null
           ])
         expect(results).toEqual([
             {
@@ -80,6 +115,8 @@ do ->
         results = $inputParser.parseArr('survey', [
             {"type": "begin score", "name": "koboskore", "label": "Label"},
             {"type": "end score"},
+          ], [
+            null
           ])
         expect(results).toEqual([
             {
@@ -98,6 +135,8 @@ do ->
             {type: 'text', name: 'q2', '$kuid': 'ddd'},
             {type: 'end group', '$kuid': 'eee'},
             {type: 'end group', '$kuid': 'fff'},
+          ], [
+            null
           ])
         expect(results).toEqual([{
           type : 'group',
@@ -115,5 +154,7 @@ do ->
         results = $inputParser.parseArr('survey', [
             {type: 'text', name: 'q1'},
             {type: 'text', name: 'q2'},
+          ], [
+            null
           ])
         expect(results).toEqual([ { type : 'text', name : 'q1' }, { type : 'text', name : 'q2' } ])

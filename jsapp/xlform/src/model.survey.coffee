@@ -2,6 +2,7 @@ _ = require 'underscore'
 $base = require './model.base'
 $choices = require './model.choices'
 $modelUtils = require './model.utils'
+$translationUtils = require './model.translationUtils'
 $configs = require './model.configs'
 $surveyFragment = require './model.surveyFragment'
 $surveyDetail = require './model.surveyDetail'
@@ -32,26 +33,31 @@ module.exports = do ->
       @choices = new $choices.ChoiceLists([], _parent: @)
       $inputParser.loadChoiceLists(options.choices || [], @choices)
 
-      if options.translations
-        @translations = options.translations
-      else
-        @translations = [null]
-
-      if options['_active_translation_name']
-        @active_translation_name = options['_active_translation_name']
-
-      @_translation_1 = @translations[0]
-      @_translation_2 = @translations[1]
+      if JSON.stringify(options.translations) == '[[]]'
+        throw new Error('bad tlist')
 
       if options.survey
+        # if not options.translations
+        #   options.translations = [null]
+        log 'options.translations', options.translations
+        $translationUtils.add_translation_list(options)
+        log 'options.translations2', options.translations
+        # log 'options.translations', options.translations
+        @translations = options.translations
+        [@_translation_1, @_translation_2] = @translations
         if !$inputParser.hasBeenParsed(options)
           options.survey = $inputParser.parseArr(options.survey)
+        for translation in options.translation_list
+          if translation.active
+            @active_translation_name = translation.name
         for r in options.survey
           if r.type in $configs.surveyDetailSchema.typeList()
             @surveyDetails.importDetail(r)
           else
             @rows.add r, collection: @rows, silent: true, _parent: @rows
       else
+        @translations = [null]
+        @_translation_1 = @_translation_2 = null
         @surveyDetails.importDefaults()
       @context =
         warnings: []
@@ -140,10 +146,11 @@ module.exports = do ->
       addlSheets =
         choices: new $choices.ChoiceLists()
 
-      if @active_translation_name
-        obj['#active_translation_name'] = @active_translation_name
+      # if @active_translation_name
+      #   obj['#active_translation_name'] = @active_translation_name
 
       obj.translations = [].concat(@translations)
+      obj.translation_list = JSON.parse(JSON.stringify(@translations))
 
       obj.survey = do =>
         out = []

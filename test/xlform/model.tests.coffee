@@ -5,7 +5,7 @@ $model = require("../../jsapp/xlform/src/_model")
 
 xlform_survey_model = ($model)->
   beforeEach ->
-    @pizzaSurvey = $model.Survey.load(PIZZA_SURVEY)
+    @getPizzaSurvey = -> $model.Survey.load(PIZZA_SURVEY)
     @createSurveyCsv = (survey=[],choices=[])->
       choiceSheet = if choices.length is 0 then "" else """
       choices,,,
@@ -35,30 +35,35 @@ xlform_survey_model = ($model)->
       @compareCsvs(x1, x2)
 
   it "creates xlform", ->
+    log('step1')
     xlf = new $model.Survey name: "Sample"
+    log('step2')
     expect(xlf).toBeDefined()
     expect(xlf instanceof $model.Survey).toBe(true)
     expect(xlf.get("name")).toBe("Sample")
 
   it "ensures every node has access to the parent survey", ->
-    @pizzaSurvey.getSurvey
+    @getPizzaSurvey().getSurvey
 
   it "can append a survey to another", ->
+    pizza_survey = @getPizzaSurvey()
     dead_simple = @createSurvey(['text,q1,Question1,q1hint', 'text,q2,Question2,q2hint'])
     expect(dead_simple.rows.length).toBe(2)
-    expect(@pizzaSurvey.rows.length).toBe(1)
-    dead_simple.insertSurvey(@pizzaSurvey)
+    expect(pizza_survey.rows.length).toBe(1)
+    dead_simple.insertSurvey(pizza_survey)
 
     expect(dead_simple.rows.length).toBe(3)
     expect(dead_simple.rows.at(2).getValue("name")).toBe("likes_pizza")
 
   it "can import from csv_repr", ->
-    expect(@pizzaSurvey.rows.length).toBe(1)
-    firstRow = @pizzaSurvey.rows.at(0)
+    pizza_survey = @getPizzaSurvey()
+    expect(pizza_survey.rows.length).toBe(1)
+    firstRow = pizza_survey.rows.at(0)
     expect(firstRow.getValue("name")).toEqual("likes_pizza")
 
   describe "with simple survey", ->
     beforeEach ->
+      @pizzaSurvey = @getPizzaSurvey()
       @firstRow = @pizzaSurvey.rows.at(0)
     describe "lists", ->
       it "iterates over every row", ->
@@ -224,6 +229,8 @@ xlform_survey_model = ($model)->
       # expect(setToInvalidList).toThrow()
       ``
   describe "groups", ->
+    beforeEach ->
+      @pizzaSurvey = @getPizzaSurvey()
     it "cannot add a group by adding a row type=group", ->
       @pizzaSurvey.addRow type: "text", name: "pizza", hint: "pizza", label: "pizza"
       expect(@pizzaSurvey.rows.last() instanceof $model.Row).toBe(true)
