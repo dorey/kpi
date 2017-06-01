@@ -1,4 +1,10 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import re
+import json
+from collections import OrderedDict
+from copy import deepcopy
 
 from django.contrib.auth.models import User, AnonymousUser
 from django.core.exceptions import ValidationError
@@ -8,6 +14,36 @@ from kpi.models import Asset
 from kpi.models import Collection
 from kpi.models.object_permission import get_all_objects_for_user
 
+# move this into a fixture file?
+# note: this is not a very robust example of a cascading select
+CASCADE_CONTENT = {u'survey': [{u'type': u'select_one',
+                                u'select_from_list_name': u'country',
+                                u'label': [u'country'],
+                                u'required': True},
+                               {u'type': u'select_one',
+                                u'select_from_list_name': u'region',
+                                u'label': [u'region'],
+                                u'choice_filter': u'country=${country}',
+                                u'required': True},
+                               {u'type': u'select_one',
+                                u'select_from_list_name': u'town',
+                                u'label': [u'region'],
+                                u'choice_filter': u'region=${region}',
+                                u'required': True}],
+                   u'choices': [{u'label': [u'France'],
+                                 u'list_name': u'country',
+                                 u'name': u'france'},
+                                {u'country': u'france',
+                                 u'label': [u'\xcele-de-France'],
+                                 u'list_name': u'region',
+                                 u'name': u'ile-de-france'},
+                                {u'region': u'ile-de-france',
+                                 u'label': [u'Paris'],
+                                 u'list_name': u'town',
+                                 u'name': u'paris'}],
+                   u'translated': [u'label'],
+                   u'translations': [None]}
+
 
 class AssetsTestCase(TestCase):
     fixtures = ['test_data']
@@ -15,11 +51,16 @@ class AssetsTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.all()[0]
         self.asset = Asset.objects.create(content={'survey': [
-            {'type': 'text', 'label': 'Question 1', 'name': 'q1', 'kuid': 'abc'},
-            {'type': 'text', 'label': 'Question 2', 'name': 'q2', 'kuid': 'def'},
-        ]}, owner=self.user)
+            {u'type': u'text',
+             u'label': u'Question 1',
+             u'name': u'q1',
+             u'$kuid': u'abc'},
+            {u'type': u'text',
+             u'label': u'Question 2',
+             u'name': u'q2',
+             u'$kuid': u'def'},
+        ]}, owner=self.user, asset_type='survey')
         self.sa = self.asset
-
 
 class CreateAssetVersions(AssetsTestCase):
 
@@ -44,6 +85,42 @@ class CreateAssetVersions(AssetsTestCase):
         self.asset.tags.add('tag2')
         self.assertEqual(_list_tag_names(), ['tag1', 'tag2'])
 
+    def test_asset_can_be_reverted(self):
+        # TODO: figure out why kuids are changing
+        #       note: this is fixed by calling `self.asset.save()`
+        #       at the beginning of this method
+        _content = deepcopy(self.asset.content)
+        # _kuid1 = _content['survey'][0]['$kuid']
+        _content_copy = deepcopy(_content)
+        # remove this next line when todo is fixed
+        self.asset._strip_kuids(_content_copy)
+        _c1 = json.dumps(_content_copy, sort_keys=True)
+        surv_l = len(_content['survey'])
+        self.assertEqual(surv_l, 2)
+        self.asset.content['survey'].append({
+            'type': 'integer',
+            'label': 'Number'
+        })
+        av1_uid = self.asset.asset_versions.all()[0].uid
+        self.asset.save()
+        aa = Asset.objects.get(uid=self.asset.uid)
+        surv_l_2 = len(aa.content['survey'])
+        self.assertEqual(surv_l_2, 3)
+        aa.revert_to_version(av1_uid)
+
+        aa = Asset.objects.get(uid=self.asset.uid)
+        _content_copy2 = deepcopy(aa.content)
+        # remove this next line when todo is fixed
+        self.asset._strip_kuids(_content_copy2)
+        _c3 = json.dumps(_content_copy2, sort_keys=True)
+        # _kuid3 = aa.content['survey'][0]['$kuid']
+        surv_l_3 = len(aa.content['survey'])
+
+        # self.assertEqual(_kuid1, _kuid3)
+        self.assertEqual(surv_l_3, 2)
+        self.assertEqual(_c1, _c3)
+
+
     def test_asset_can_be_anonymous(self):
         anon_asset = Asset.objects.create(content=self.asset.content)
         self.assertEqual(anon_asset.owner, None)
@@ -66,6 +143,55 @@ class AssetContentTests(AssetsTestCase):
             {'list_name': 'yn', 'name': 'y', 'label': 'Yes'},
             {'list_name': 'yn', 'name': 'n', 'label': 'No'},
         ]}
+
+    def test_rename_null_translation(self):
+        '''
+        This allows a workaround to enable multi-translation editing in the
+        form builder which focuses on the "null" language.
+        '''
+        self.asset = Asset.objects.create(content={'survey': [
+            {'label': ['lang1', 'lang2'], 'type': 'text', 'name': 'q1'},
+        ],
+            'translations': ['lang1', None],
+            '#active_translation_name': 'lang2',
+        })
+        self.assertEqual(self.asset.content['translations'], ['lang1', 'lang2'])
+        self.assertTrue('#active_translation_name' not in self.asset.content)
+        self.assertTrue('#null_translation' not in self.asset.content)
+
+    def test_rename_translation(self):
+        '''
+        This allows a workaround to enable multi-translation editing in the
+        form builder which focuses on the "null" language.
+        '''
+        self.asset = Asset.objects.create(content={'survey': [
+            {'label': ['lang1', 'lang2'], 'type': 'text', 'name': 'q1'},
+        ],
+            'translations': ['lang1', None],
+        })
+        _content = self.asset.content
+        self.assertTrue('translated' in _content)
+        self.assertEqual(_content['translated'], ['label'])
+
+        self.asset.rename_translation(None, 'lang2')
+        self.assertEqual(self.asset.content['translations'], ['lang1', 'lang2'])
+
+    def test_rename_translation_fail(self):
+        '''
+        This allows a workaround to enable multi-translation editing in the
+        form builder which focuses on the "null" language.
+        '''
+        self.asset = Asset.objects.create(content={'survey': [
+            {'label': ['lang1', 'lang2'], 'type': 'text', 'name': 'q1'},
+        ],
+            'translations': ['lang1', None],
+        })
+        try:
+            self.asset.rename_translation('lang1', None)
+            # shouldnt get here
+            self.fail()
+        except:
+            self.assertEqual(self.asset.content.get('translations'), ['lang1', None])
 
     def test_flatten_empty_relevant(self):
         content = self._wrap_field('relevant', [])
@@ -104,6 +230,37 @@ class AssetContentTests(AssetsTestCase):
         self.assertEqual(r1['type'], 'select_one')
         self.assertEqual(r1['select_from_list_name'], 'abc')
 
+    def test_get_standardized_content(self):
+        def _asset_with_content(_c):
+            asset = Asset.objects.create(asset_type='survey', content=_c)
+            return asset.ordered_xlsform_content()
+        x1 = _asset_with_content({
+            'survey': [
+                {'type': 'text', 'label': '_asset_with_content'}
+            ]
+        })
+        self.assertTrue(None not in [x.get('name')
+                                     for x in x1['survey']])
+
+    def test_convert_content_to_ordered_dicts(self):
+        _c = self.asset.ordered_xlsform_content(
+            append={
+                'survey': [
+                    {'type': 'note', 'label': ['wee'
+                     for _ in self.asset.content.get('translations')]
+                     },
+                ],
+                'settings': {
+                    'asdf': 'jkl',
+                }
+            },
+        )
+        self.assertTrue(isinstance(_c, OrderedDict))
+        self.assertTrue(_c.keys(), ['survey', 'settings'])
+        self.assertTrue(isinstance(_c['survey'][0], OrderedDict))
+        self.assertEqual(_c['settings'][0]['asdf'], 'jkl')
+        self.assertEqual(_c['survey'][-1]['type'], 'note')
+
 
 class AssetSettingsTests(AssetsTestCase):
     def _content(self, form_title='some form title'):
@@ -140,35 +297,97 @@ class AssetSettingsTests(AssetsTestCase):
     def test_blocks_strip_settings(self):
         a1 = Asset.objects.create(content=self._content(), owner=self.user,
                                   asset_type='block')
-        self.assertTrue('settings' not in a1.content)
+        self.assertEqual(a1.content['settings'], {})
 
     def test_questions_strip_settings(self):
         a1 = Asset.objects.create(content=self._content(), owner=self.user,
                                   asset_type='question')
-        self.assertTrue('settings' not in a1.content)
+        self.assertEqual(a1.content['settings'], {})
 
     def test_surveys_retain_settings(self):
-        a1 = Asset.objects.create(content=self._content(), owner=self.user,
+        _content = self._content()
+        _content['settings'] = {
+            'style': 'pages',
+        }
+        a1 = Asset.objects.create(content=_content, owner=self.user,
                                   asset_type='survey')
         self.assertEqual(a1.asset_type, 'survey')
         self.assertTrue('settings' in a1.content)
+        self.assertEqual(a1.content['settings'].get('style'), 'pages')
 
     def test_surveys_move_form_title_to_name(self):
         a1 = Asset.objects.create(content=self._content('abcxyz'),
                                   owner=self.user,
                                   asset_type='survey')
         # settingslist
-        settings = a1.content['settings'][0]
+        settings = a1.content['settings']
+        self.assertEqual(a1.asset_type, 'survey')
         self.assertTrue('form_title' not in settings)
         self.assertEqual(a1.name, 'abcxyz')
+
+
+
+class AssetScoreTestCase(TestCase):
+    fixtures = ['test_data']
+
+    def test_score_can_be_exported(self):
+        _matrix_score = {
+            u'survey': [
+                {u'kobo--score-choices': u'nb7ud55',
+                 u'label': [u'Los Angeles'],
+                 u'required': True,
+                 u'type': u'begin_score'},
+                {u'label': [u'Food'], u'type': u'score__row'},
+                {u'label': [u'Music'], u'type': u'score__row'},
+                {u'label': [u'Night life'], u'type': u'score__row'},
+                {u'label': [u'Housing'], u'type': u'score__row'},
+                {u'label': [u'Culture'], u'type': u'score__row'},
+                {u'type': u'end_score'}],
+            u'choices': [
+                {u'label': [u'Great'],
+                 u'list_name': u'nb7ud55'},
+                {u'label': [u'OK'],
+                 u'list_name': u'nb7ud55'},
+                {u'label': [u'Bad'],
+                 u'list_name': u'nb7ud55'}],
+            u'settings': {},
+        }
+        a1 = Asset.objects.create(content=_matrix_score, asset_type='survey')
+        _snapshot = a1.snapshot
+        self.assertNotEqual(_snapshot.xml, '')
+        self.assertNotEqual(_snapshot.details['status'], 'failure')
+
+
+class AssetSnapshotXmlTestCase(AssetSettingsTests):
+    def test_cascading_select_xform(self):
+        asset = Asset.objects.create(asset_type='survey',
+                                     content=CASCADE_CONTENT)
+        # kuids automatically populated by asset.save()
+        survey_kuids = [row.get('$kuid') for row in asset.content.get('survey')]
+        choices_kuids = [row.get('$kuid') for row in asset.content.get('choices')]
+        self.assertTrue(None not in survey_kuids)
+        self.assertTrue(None not in choices_kuids)
+        # asset.snapshot.xml generates a document that does not have any
+        # "$kuid" or "<$kuid>x</$kuid>" elements
+        _xml = asset.snapshot.xml
+
+        # as is in every xform:
+        self.assertTrue('<instance>' in _xml)
+        # specific to this cascading select form:
+        self.assertTrue('<instance id="town">' in _xml)
+        self.assertTrue('<instance id="region">' in _xml)
+        self.assertTrue('<instance id="country">' in _xml)
+
+        self.assertTrue('$kuid' not in _xml)
 
     def test_surveys_exported_to_xml_have_id_string_and_title(self):
         a1 = Asset.objects.create(content=self._content('abcxyz'),
                                   owner=self.user,
                                   asset_type='survey')
-        export = a1.get_export()
+        export = a1.snapshot
         self.assertTrue('<h:title>abcxyz</h:title>' in export.xml)
-        self.assertTrue('<xid_stringx id="xid_stringx">' in export.xml)
+        self.assertTrue('<data id="xid_stringx">' in export.xml)
+
 
 # TODO: test values of "valid_xlsform_content"
 

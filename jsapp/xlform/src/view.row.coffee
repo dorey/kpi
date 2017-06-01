@@ -65,6 +65,7 @@ module.exports = do ->
     _renderRow: ->
       @$el.html $viewTemplates.$$render('row.xlfRowView', @surveyView)
       @$label = @$('.card__header-title')
+      @$sub_label = @$('.card__header-subtitle')
       @$card = @$('.card')
       @$header = @$('.card__header')
       context = {warnings: []}
@@ -75,6 +76,13 @@ module.exports = do ->
         @listView = new $viewChoices.ListView(model: cl, rowView: @).render()
 
       @cardSettingsWrap = @$('.card__settings').eq(0)
+      _second_translation = @surveyView.survey._translation_2
+      if _second_translation isnt undefined
+        _second_val = @model.getLabel('_2')
+        if !_second_val
+          _no_t = _t("No translation")
+          _second_val = """<span class="card__header-subtitle-empty-value">#{_no_t}</span>"""
+        @$sub_label.html(_second_val).show()
       @defaultRowDetailParent = @cardSettingsWrap.find('.card__settings__fields--question-options').eq(0)
       for [key, val] in @model.attributesArray() when key is 'label' or key is 'type'
         view = new $viewRowDetail.DetailView(model: val, rowView: @)
@@ -85,7 +93,8 @@ module.exports = do ->
         view.render().insertInDOM(@)
         if key == 'label'
           @make_label_editable(view)
-
+      if @model.getValue('required')
+        @$card.addClass('card--required')
       @
 
     toggleSettings: (show)->
@@ -154,8 +163,6 @@ module.exports = do ->
         # only render the row details which are necessary for the initial view (ie 'label')
         @make_label_editable new $viewRowDetail.DetailView(model: @model.get('label'), rowView: @).render().insertInDOM(@)
 
-
-
       @already_rendered = true
       @
 
@@ -165,8 +172,9 @@ module.exports = do ->
       @$header.after($viewTemplates.row.groupSettingsView())
       @cardSettingsWrap = @$('.card__settings').eq(0)
       @defaultRowDetailParent = @cardSettingsWrap.find('.card__settings__fields--active').eq(0)
-      for [key, val] in @model.attributesArray() when key in ["name", "_isRepeat", "appearance", "relevant"]
-        new $viewRowDetail.DetailView(model: val, rowView: @).render().insertInDOM(@)
+      for [key, val] in @model.attributesArray()
+        if key in ["name", "_isRepeat", "appearance", "relevant"] or key.match(/^label::/)
+          new $viewRowDetail.DetailView(model: val, rowView: @).render().insertInDOM(@)
 
       if @hasNestedGroups()
         @$('.xlf-dv-appearance').hide()
@@ -206,7 +214,8 @@ module.exports = do ->
       @cardSettingsWrap = @$('.card__settings').eq(0)
       @defaultRowDetailParent = @cardSettingsWrap.find('.card__settings__fields--question-options').eq(0)
 
-      for [key, val] in @model.attributesArray() when key isnt "label" and key isnt "type"
+      # don't display columns that start with a $
+      for [key, val] in @model.attributesArray() when !key.match(/^\$/) and key not in ["label", "type", "select_from_list_name"]
         new $viewRowDetail.DetailView(model: val, rowView: @).render().insertInDOM(@)
       @
 

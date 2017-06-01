@@ -66,8 +66,9 @@ module.exports = do ->
       outObj = {}
       for [key, val] in @attributesArray()
         if key is 'type' and val.get('typeId') in ['select_one', 'select_multiple']
-          result = {}
-          result[val.get('typeId')] = val.get('listName')
+          outObj['type'] = val.get('typeId')
+          outObj['select_from_list_name'] = val.get('listName')
+          continue
         else
           result = @getValue(key)
         unless @hidden
@@ -257,7 +258,7 @@ module.exports = do ->
       if score_list
         additionalSheets['choices'].add(score_list)
       output = _.clone(@toJSON2())
-      output.type = "begin score"
+      output.type = "begin_score"
       output['kobo--score-choices'] = @getList().get('name')
       survey_arr.push(output)
       ``
@@ -376,6 +377,23 @@ module.exports = do ->
       @getSurvey().trigger('change')
 
       return newRow
+
+    getTranslatedColumnKey: (col, whichone="primary")->
+      if whichone is "_2"
+        _t = @getSurvey()._translation_2
+      else
+        _t = @getSurvey()._translation_1
+      _key = "#{col}"
+      if _t isnt null
+        _key += "::#{_t}"
+      _key
+
+    getLabel: (whichone="primary")->
+      _col = @getTranslatedColumnKey("label", whichone)
+      if _col of @attributes
+        @getValue _col
+      else
+        null
 
     finalize: ->
       existing_name = @getValue("name")

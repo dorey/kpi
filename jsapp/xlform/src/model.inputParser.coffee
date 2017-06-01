@@ -27,7 +27,21 @@ module.exports = do ->
     return true
   inputParser.hasBeenParsed = hasBeenParsed
 
-  parseArr = (type='survey', sArr)->
+  flatten_translated_fields = (item, translations)->
+    for key, val of item
+      if _.isArray(val)
+        delete item[key]
+        _.map(translations, (_t, i)->
+          _translated_val = val[i]
+          if _t
+            lang_str = "#{key}::#{_t}"
+          else
+            lang_str = key
+          item[lang_str] = _translated_val
+        )
+    item
+
+  parseArr = (type='survey', sArr, translations=false)->
     counts = {
       open: {}
       close: {}
@@ -59,6 +73,10 @@ module.exports = do ->
 
     for item in sArr
       _groupAtts = $aliases.q.testGroupable(item.type)
+
+      if translations and translations.length > 0
+        item = flatten_translated_fields(item, translations)
+
       if _groupAtts
         if _groupAtts.begin
           _pushGrp(_groupAtts.type, item)
@@ -77,12 +95,41 @@ module.exports = do ->
 
   inputParser.parseArr = parseArr
   inputParser.parse = (o)->
+    translations = o.translations
+    if o['#active_translation_name']
+      _existing_active_translation_name = o['#active_translation_name']
+      delete o['#active_translation_name']
+
+    if translations
+      if translations.indexOf(null) is -1 # there is no unnamed translation
+        if _existing_active_translation_name
+          throw new Error('active translation set, but cannot be found')
+        o._active_translation_name = translations[0]
+        translations[0] = null
+      else if translations.indexOf(null) > 0
+        throw new Error("""
+                        unnamed translation must be the first (primary) translation
+                        translations need to be reordered or unnamed translation needs
+                        to be given a name
+                        """)
+      else if _existing_active_translation_name # there is already an active null translation
+        o._active_translation_name = _existing_active_translation_name
+    else
+      translations = [null]
+
     # sorts groups and repeats into groups and repeats (recreates the structure)
     if o.survey
-      o.survey = parseArr('survey', o.survey)
+      o.survey = parseArr('survey', o.survey, translations)
+
+    if o.choices
+      o.choices = parseArr('choices', o.choices, translations)
+
     # settings is sometimes packaged as an array length=1
     if o.settings and _.isArray(o.settings) and o.settings.length is 1
       o.settings = o.settings[0]
+
+    o.translations = translations
+
     o
 
   inputParser.loadChoiceLists = (passedChoices, choices)->
