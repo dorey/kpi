@@ -179,23 +179,24 @@ class KobocatUser(ShadowModel):
     def sync(cls, auth_user):
         # NB: `KobocatUserObjectPermission` (and probably other things) depend
         # upon PKs being synchronized between KPI and KoBoCAT
-        try:
-            kc_auth_user = cls.objects.get(pk=auth_user.pk)
-            assert kc_auth_user.username == auth_user.username
-        except KobocatUser.DoesNotExist:
-            kc_auth_user = cls(pk=auth_user.pk, username=auth_user.username)
-
-        kc_auth_user.password = auth_user.password
-        kc_auth_user.last_login = auth_user.last_login
-        kc_auth_user.is_superuser = auth_user.is_superuser
-        kc_auth_user.first_name = auth_user.first_name
-        kc_auth_user.last_name = auth_user.last_name
-        kc_auth_user.email = auth_user.email
-        kc_auth_user.is_staff = auth_user.is_staff
-        kc_auth_user.is_active = auth_user.is_active
-        kc_auth_user.date_joined = auth_user.date_joined
-
-        kc_auth_user.save()
+        # try:
+        #     kc_auth_user = cls.objects.get(pk=auth_user.pk)
+        #     assert kc_auth_user.username == auth_user.username
+        # except KobocatUser.DoesNotExist:
+        #     kc_auth_user = cls(pk=auth_user.pk, username=auth_user.username)
+        #
+        # kc_auth_user.password = auth_user.password
+        # kc_auth_user.last_login = auth_user.last_login
+        # kc_auth_user.is_superuser = auth_user.is_superuser
+        # kc_auth_user.first_name = auth_user.first_name
+        # kc_auth_user.last_name = auth_user.last_name
+        # kc_auth_user.email = auth_user.email
+        # kc_auth_user.is_staff = auth_user.is_staff
+        # kc_auth_user.is_active = auth_user.is_active
+        # kc_auth_user.date_joined = auth_user.date_joined
+        #
+        # kc_auth_user.save()
+        pass
 
 
 class KobocatUserObjectPermission(ShadowModel):
@@ -316,7 +317,7 @@ class KobocatToken(ShadowModel):
     def sync(cls, auth_token):
         try:
             # Token use a One-to-One relationship on User.
-            # Thus, we can retrieve tokens from users' id. 
+            # Thus, we can retrieve tokens from users' id.
             kc_auth_token = cls.objects.get(user_id=auth_token.user_id)
         except KobocatToken.DoesNotExist:
             kc_auth_token = cls(pk=auth_token.pk, user_id=auth_token.user_id)

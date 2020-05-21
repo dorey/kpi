@@ -83,11 +83,12 @@ export function unnullifyTranslations(surveyDataJSON, assetContent) {
     defaultLang = null;
   }
   if (!surveyData.settings[0].default_language && defaultLang !== null) {
-    surveyData.settings[0].default_language = defaultLang;
+    // surveyData.settings[0].default_language = defaultLang;
   }
 
   if (defaultLang !== null) {
     // replace every "translatedProp" with "translatedProp::defaultLang"
+    /*
     if (surveyData.choices) {
       surveyData.choices.forEach((choice) => {
         translatedProps.forEach((translatedProp) => {
@@ -108,6 +109,7 @@ export function unnullifyTranslations(surveyDataJSON, assetContent) {
         });
       });
     }
+    */
   }
 
   return JSON.stringify(surveyData);

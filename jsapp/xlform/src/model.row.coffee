@@ -79,13 +79,13 @@ module.exports = do ->
       for [key, val] in @attributesArray()
         if key is 'type' and val.get('typeId') in ['select_one', 'select_multiple']
           outObj['type'] = val.get('typeId')
-          outObj['select_from_list_name'] = val.get('listName')
+          outObj['select_from'] = val.get('listName')
           continue
         else
           result = @getValue(key)
         unless @hidden
           if _.isBoolean(result)
-            outObj[key] = $configs.boolOutputs[if result then "true" else "false"]
+            outObj[key] = result
           else if '' isnt result
             outObj[key] = result
       outObj
@@ -313,6 +313,9 @@ module.exports = do ->
 
       defaults = _.extend {}, defaultsUnlessDefined, curTypeDefaults
 
+      TRANSLATED_ROW_COLUMNS = [
+        'label',
+      ]
       for key, vals of defaults
         unless key of @attributes
           newVals = {}

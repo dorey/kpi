@@ -78,7 +78,7 @@ module.exports = do ->
       reflectValueInEl = (force=false)=>
         # This should never change the model value
         if force || !inTransition
-          modelVal = @model.get('value')
+          modelVal = @model.getTranslatedValue(true)
           if inputType is 'checkbox'
             if !_.isBoolean(modelVal)
               modelVal = modelVal in $configs.truthyValues
@@ -162,7 +162,7 @@ module.exports = do ->
     html: -> false
     insertInDOM: (rowView)->
       cht = rowView.$label
-      cht.value = @model.get('value')
+      cht.value = @model.getTranslatedValue(true)
       return @
     afterRender: ->
       @listenForInputChange({
@@ -178,7 +178,7 @@ module.exports = do ->
     html: -> false
     insertInDOM: (rowView) ->
       hintEl = rowView.$hint
-      hintEl.value = @model.get("value")
+      hintEl.value = @model.getTranslatedValue(true)
       return @
     afterRender: ->
       @listenForInputChange({
@@ -269,7 +269,7 @@ module.exports = do ->
         @model.set 'value', value
         @model.deduplicate @model.getSurvey()
       )
-      update_view = () => @$el.find('input').eq(0).val(@model.get("value") || $modelUtils.sluggifyLabel @model._parent.getValue('label'))
+      update_view = () => @$el.find('input').eq(0).val(@model.getTranslatedValue(true) || $modelUtils.sluggifyLabel @model._parent.get('label').getTranslatedValue(true))
       update_view()
 
       @model._parent.get('label').on 'change:value', update_view

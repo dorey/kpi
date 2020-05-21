@@ -75,9 +75,9 @@ class CurrentUserSerializer(serializers.ModelSerializer):
         if not rep['extra_details']:
             rep['extra_details'] = {}
         # `require_auth` needs to be read from KC every time
-        if settings.KOBOCAT_URL and settings.KOBOCAT_INTERNAL_URL:
-            rep['extra_details']['require_auth'] = get_kc_profile_data(
-                obj.pk).get('require_auth', False)
+        # if settings.KOBOCAT_URL and settings.KOBOCAT_INTERNAL_URL:
+        #     rep['extra_details']['require_auth'] = get_kc_profile_data(
+        #         obj.pk).get('require_auth', False)
 
         return rep
 

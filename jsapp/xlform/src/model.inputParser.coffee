@@ -30,18 +30,17 @@ module.exports = do ->
     return true
   inputParser.hasBeenParsed = hasBeenParsed
 
-  flatten_translated_fields = (item, translations)->
+  flatten_translated_fields = (item, translations, txids)->
     for key, val of item
+      xxx = val
       if _.isArray(val) and key != 'tags'
-        delete item[key]
-        _.map(translations, (_t, i)->
+        # delete item[key]
+        obj = {}
+        translations.forEach (_t, i)->
+          txid = txids[i]
           _translated_val = val[i]
-          if _t
-            lang_str = "#{key}::#{_t}"
-          else
-            lang_str = key
-          item[lang_str] = _translated_val
-        )
+          obj[txid] = _translated_val
+        item[key] = obj
     return item
 
   parseArr = (type='survey', sArr, translations=false)->
@@ -110,15 +109,16 @@ module.exports = do ->
 
   # pass baseSurvey whenever you import other asset into existing form
   inputParser.parse = (o, baseSurvey)->
-    translations = o.translations
+    txs = JSON.parse(JSON.stringify(o.translations))
 
     nullified = utils.nullifyTranslations(o.translations, o.translated, o.survey, baseSurvey)
-
     # we edit the received object directly, which seems like BAD CODE™
     # but in fact is required for the languages to work properly
     o.survey = nullified.survey;
     o.translations = nullified.translations
     o.translations_0 = nullified.translations_0
+
+    o.txs = txs
 
     if o.survey
       o.survey = normalizeRequiredValues(o.survey)

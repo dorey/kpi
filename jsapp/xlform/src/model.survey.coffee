@@ -32,9 +32,13 @@ module.exports = do ->
       @choices = new $choices.ChoiceLists([], _parent: @)
       $inputParser.loadChoiceLists(options.choices || [], @choices)
 
+      translations = options.txs
+      @curtx = 'tx0'
+
       if options.survey
         if !$inputParser.hasBeenParsed(options)
           options.survey = $inputParser.parseArr(options.survey)
+
         for r in options.survey
           if typeof r.id isnt 'undefined'
             throw new Error("Forbidden column `id` for row: #{JSON.stringify(r, null, 2)}")
@@ -133,22 +137,20 @@ module.exports = do ->
     toFlatJSON: (stringify=false, spaces=4)->
       obj = @toJSON()
 
-      obj.survey = for row in obj.survey
-        if _.isObject(row.type)
-          row.type = [
-            _.keys(row.type)[0], _.values(row.type)[0]
-          ].join(' ')
-        row
+      # obj.survey = for row in obj.survey
+      #   if _.isObject(row.type)
+      #     row.type = [
+      #       _.keys(row.type)[0], _.values(row.type)[0]
+      #     ].join(' ')
+      #   row
       if _.isObject(obj.choices)
-        flattened_choices = []
-        for own key, val of obj.choices
+        objChoices = JSON.parse(JSON.stringify(obj.choices))
+        for own key, val of objChoices
           for list_item in val
-            _c = $.extend({list_name: key}, list_item)
-            delete _c.setManually
-            flattened_choices.push(_c)
-        obj.choices = flattened_choices
+            delete list_item.setManually
+        obj.choices = objChoices
 
-      obj.settings = [@settings.attributes]
+      obj.settings = @settings.attributes
 
       if stringify
         JSON.stringify(obj, null, spaces)

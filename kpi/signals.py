@@ -36,73 +36,74 @@ def default_permissions_post_save(sender, instance, created, raw, **kwargs):
     grant_default_model_level_perms(instance)
 
 
-@receiver(post_save, sender=User)
-def save_kobocat_user(sender, instance, created, raw, **kwargs):
-    """
-    Sync auth_user table between KPI and KC, and, if the user is newly created,
-    grant all KoBoCAT model-level permissions for the content types listed in
-    `settings.KOBOCAT_DEFAULT_PERMISSION_CONTENT_TYPES`
-    """
-    if not settings.TESTING:
-        KobocatUser.sync(instance)
+# @receiver(post_save, sender=User)
+# def save_kobocat_user(sender, instance, created, raw, **kwargs):
+#     """
+#     Sync auth_user table between KPI and KC, and, if the user is newly created,
+#     grant all KoBoCAT model-level permissions for the content types listed in
+#     `settings.KOBOCAT_DEFAULT_PERMISSION_CONTENT_TYPES`
+#     """
+#     # if not settings.TESTING:
+#     #     KobocatUser.sync(instance)
+#     #
+#     #     if created:
+#     #         # FIXME: If this fails, the next attempt results in
+#     #         #   IntegrityError: duplicate key value violates unique constraint
+#     #         #   "auth_user_username_key"
+#     #         # and decorating this function with `transaction.atomic` doesn't
+#     #         # seem to help. We should roll back the KC user creation if
+#     #         # assigning model-level permissions fails
+#     #         grant_kc_model_level_perms(instance)
+#     #
+#     #         # Force PartialDigest to be sync'ed on creation
+#     #         partial_digests = PartialDigest.objects.filter(user_id=instance.pk)
+#     #         for partial_digest in partial_digests:
+#     #             # `KobocatUser` should exist at this point.
+#     #             # We don't need to validate `KobocatUser`'s existence.
+#     #             KobocatDigestPartial.sync(partial_digest, validate_user=False)
+#
+#
+# @receiver(post_save, sender=Token)
+# def save_kobocat_token(sender, instance, **kwargs):
+#     """
+#     Sync AuthToken table between KPI and KC
+#     """
+#     # if not settings.TESTING:
+#     #     KobocatToken.sync(instance)
+#
+#
+# @receiver(post_delete, sender=Token)
+# def delete_kobocat_token(sender, instance, **kwargs):
+#     """
+#     Delete corresponding record from KC AuthToken table
+#     """
+#     # if not settings.TESTING:
+#     #     try:
+#     #         KobocatToken.objects.get(pk=instance.pk).delete()
+#     #     except KobocatToken.DoesNotExist:
+#     #         pass
+#
+#
+# @receiver(post_save, sender=PartialDigest)
+# def save_kobocat_partial_digest(sender, instance, **kwargs):
+#     """
+#     Sync PartialDigest table between KPI and KC
+#     """
+#     # if not settings.TESTING:
+#     #     KobocatDigestPartial.sync(instance)
 
-        if created:
-            # FIXME: If this fails, the next attempt results in
-            #   IntegrityError: duplicate key value violates unique constraint
-            #   "auth_user_username_key"
-            # and decorating this function with `transaction.atomic` doesn't
-            # seem to help. We should roll back the KC user creation if
-            # assigning model-level permissions fails
-            grant_kc_model_level_perms(instance)
-
-            # Force PartialDigest to be sync'ed on creation
-            partial_digests = PartialDigest.objects.filter(user_id=instance.pk)
-            for partial_digest in partial_digests:
-                # `KobocatUser` should exist at this point.
-                # We don't need to validate `KobocatUser`'s existence.
-                KobocatDigestPartial.sync(partial_digest, validate_user=False)
 
 
-@receiver(post_save, sender=Token)
-def save_kobocat_token(sender, instance, **kwargs):
-    """
-    Sync AuthToken table between KPI and KC
-    """
-    if not settings.TESTING:
-        KobocatToken.sync(instance)
-
-
-@receiver(post_delete, sender=Token)
-def delete_kobocat_token(sender, instance, **kwargs):
-    """
-    Delete corresponding record from KC AuthToken table
-    """
-    if not settings.TESTING:
-        try:
-            KobocatToken.objects.get(pk=instance.pk).delete()
-        except KobocatToken.DoesNotExist:
-            pass
-
-
-@receiver(post_save, sender=PartialDigest)
-def save_kobocat_partial_digest(sender, instance, **kwargs):
-    """
-    Sync PartialDigest table between KPI and KC
-    """
-    if not settings.TESTING:
-        KobocatDigestPartial.sync(instance)
-
-
-@receiver(post_delete, sender=PartialDigest)
-def delete_kobocat_partial_digest(sender, instance, **kwargs):
-    """
-    Delete corresponding record from KC PartialDigest table
-    """
-    if not settings.TESTING:
-        try:
-            KobocatDigestPartial.objects.get(pk=instance.pk).delete()
-        except KobocatDigestPartial.DoesNotExist:
-            pass
+# @receiver(post_delete, sender=PartialDigest)
+# def delete_kobocat_partial_digest(sender, instance, **kwargs):
+#     """
+#     Delete corresponding record from KC PartialDigest table
+#     """
+#     if not settings.TESTING:
+#         try:
+#             KobocatDigestPartial.objects.get(pk=instance.pk).delete()
+#         except KobocatDigestPartial.DoesNotExist:
+#             pass
 
 
 @receiver(post_save, sender=Tag)

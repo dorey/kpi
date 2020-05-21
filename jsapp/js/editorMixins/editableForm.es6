@@ -238,7 +238,8 @@ export default assign({
       surveyJSON = unnullifyTranslations(surveyJSONWithMatrix, this.state.asset.content);
     }
     let params = {content: surveyJSON};
-
+    console.log(JSON.stringify(JSON.parse(surveyJSON), null, 2))
+    console.log(params)
     if (this.state.name) {
       params.name = this.state.name;
     }

@@ -59,7 +59,8 @@ CSRF_COOKIE_HTTPONLY = True
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = (os.environ.get('DJANGO_DEBUG', 'True') == 'True')
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(' ')
+# ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(' ')
+ALLOWED_HOSTS = '*'
 
 LOGIN_REDIRECT_URL = '/'
 
@@ -676,5 +677,6 @@ MONGO_CONNECTION = MongoClient(
     MONGO_CONNECTION_URL, j=True, tz_aware=True, connect=False)
 MONGO_DB = MONGO_CONNECTION[MONGO_DATABASE['NAME']]
 
-SESSION_ENGINE = "redis_sessions.session"
-SESSION_REDIS = RedisHelper.config(default="redis://redis_cache:6380/2")
+SESSION_ENGINE = 'django.contrib.sessions.backends.file'
+# SESSION_ENGINE = "redis_sessions.session"
+# SESSION_REDIS = RedisHelper.config(default="redis://redis_cache:6380/2")

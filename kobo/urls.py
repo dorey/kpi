@@ -5,10 +5,13 @@ from django.urls import include, path, re_path
 from django.views.generic.base import RedirectView
 
 from kobo.apps.service_health.views import service_health
+from kobo.apps.formschema.views import nextasset
 
 admin.autodiscover()
 
 urlpatterns = [
+    path('nextasset/', nextasset),
+    # re_path(r'^admin/', admin.site.urls),
     re_path(r'^admin/', admin.site.urls),
     # https://github.com/stochastic-technologies/django-loginas
     re_path(r'^admin/', include('loginas.urls')),

@@ -25,6 +25,8 @@ from formpack.utils.json_hash import json_hash
 from formpack.utils.spreadsheet_content import flatten_to_spreadsheet_content
 from kobo.apps.reports.constants import (SPECIFIC_REPORTS_KEY,
                                          DEFAULT_REPORTS_KEY)
+from kobo.apps.formschema.content import Content
+
 from kpi.constants import (
     ASSET_TYPES,
     ASSET_TYPE_BLOCK,
@@ -76,6 +78,8 @@ from kpi.utils.standardize_content import (needs_standardization,
 from .asset_user_partial_permission import AssetUserPartialPermission
 from .asset_version import AssetVersion
 from .object_permission import ObjectPermission, ObjectPermissionMixin
+
+from kobo.apps.formschema.content import Content
 
 
 # TODO: Would prefer this to be a mixin that didn't derive from `Manager`.
@@ -467,6 +471,9 @@ class XlsExportable:
         return output
 
 
+ASSET_SCHEMA_VERSION = '2'
+
+
 class Asset(ObjectPermissionMixin,
             TagStringMixin,
             DeployableMixin,
@@ -624,12 +631,25 @@ class Asset(ObjectPermissionMixin,
     def __str__(self):
         return '{} ({})'.format(self.name, self.uid)
 
+    def set_v2_content(self):
+        # try:
+        schema = Content.generate_schema()
+        self.content_v2 = Content(self.content, **{
+            'perform_validation': True
+        }).export(schema=ASSET_SCHEMA_VERSION)
+        # except KeyboardInterrupt as err:
+        #     raise err
+        # except Exception as err:
+        #     self.content_v2 = None
+
+
     def adjust_content_on_save(self):
         """
         This is called on save by default if content exists.
         Can be disabled / skipped by calling with parameter:
         asset.save(adjust_content=False)
         """
+
         self._standardize(self.content)
 
         self._make_default_translation_first(self.content)
@@ -638,6 +658,8 @@ class Asset(ObjectPermissionMixin,
         self._autoname(self.content)
         self._unlink_list_items(self.content)
         self._remove_empty_expressions(self.content)
+
+        # import pdb; pdb.set_trace()
 
         settings = self.content['settings']
         _title = settings.pop('form_title', None)
@@ -844,8 +866,15 @@ class Asset(ObjectPermissionMixin,
 
         # in certain circumstances, we don't want content to
         # be altered on save. (e.g. on asset.deploy())
-        if kwargs.pop('adjust_content', True):
-            self.adjust_content_on_save()
+
+        xxx = False
+        if xxx:
+            self.content = json.loads('''
+{"survey": [{"name": "start", "type": "start", "$kuid": "hzJivUYk5", "$autoname": "start"}, {"name": "end", "type": "end", "$kuid": "Ez2n7XqQS", "$autoname": "end"}, {"name": "external_characteristics", "type": "begin_group", "$kuid": "cbc4ba77", "$autoname": "external_characteristics", "required": false, "label": ["External Characteristics", "Caracter\u00edsticas externas"]}, {"type": "select_multiple", "select_from_list_name": "symmetry", "name": "What_kind_of_symmetry_do_you_have", "required": false, "$kuid": "f073bdb4", "$autoname": "What_kind_of_symmetry_do_you_have", "tags": ["hxl:#symmetry"], "label": ["What kind of symmetry do you have?", "\u00bfQu\u00e9 tipo de simetr\u00eda tiene?"]}, {"type": "integer", "name": "How_many_segments_does_your_body_have", "required": false, "$kuid": "2b4d8728", "$autoname": "How_many_segments_does_your_body_have", "tags": ["hxl:#segments"], "label": ["How many segments does your body have?", "\u00bfCu\u00e1ntos segmentos tiene tu cuerpo?"]}, {"type": "end_group", "$kuid": "/cbc4ba77"}, {"type": "select_one", "select_from_list_name": "fluids", "name": "Do_you_have_body_flu_intracellular_space", "required": false, "$kuid": "5fa1fc59", "$autoname": "Do_you_have_body_flu_intracellular_space", "tags": ["hxl:#fluids"], "label": ["Do you have body fluids that occupy intracellular space?", "\u00bfTienes fluidos corporales que ocupan espacio intracelular?"]}, {"type": "select_one", "select_from_list_name": "yes_no", "name": "Do_you_descend_from_unicellular_organism", "required": false, "$kuid": "bfde6907", "$autoname": "Do_you_descend_from_unicellular_organism", "label": ["Do you descend from an ancestral unicellular organism?", "\u00bfDesciende de un organismo unicelular ancestral?"]}], "choices": [{"list_name": "symmetry", "name": "radial", "$kuid": "ZPnJU2UDT", "$autovalue": "radial", "order": 0, "label": ["Radial", "Radial"]}, {"list_name": "symmetry", "name": "spherical", "$kuid": "znLPY61Ld", "$autovalue": "spherical", "order": 1, "label": ["Spherical", "Esfxrico"]}, {"list_name": "symmetry", "name": "bilateral", "$kuid": "I1YEey5HN", "$autovalue": "bilateral", "order": 2, "label": ["Bilateral", "Bilateral"]}, {"list_name": "fluids", "name": "yes", "$kuid": "stt38WSAX", "$autovalue": "yes", "label": ["Yes", "S\u00ed"]}, {"list_name": "fluids", "name": "yes__and_some_", "$kuid": "5FK8E701j", "$autovalue": "yes__and_some_", "label": ["Yes, and some extracellular space", "S\u00ed, y alg\u00fan espacio extracelular"]}, {"list_name": "fluids", "name": "no___unsure", "$kuid": "bp2rEpfrQ", "$autovalue": "no___unsure", "label": ["No / Unsure", "No / Inseguro"]}, {"list_name": "yes_no", "name": "yes", "$kuid": "8JWoXO6Ow", "$autovalue": "yes", "label": ["Yes", "S\u00ed"]}, {"list_name": "yes_no", "name": "no", "$kuid": "bMHoONeYA", "$autovalue": "no", "label": ["No", "No"]}], "settings": {"id_string": "Identificaci_n_de_animales", "default_language": "English"}, "translations": ["English", "Spanish"], "translated": ["label"], "schema": "1"}
+            ''')
+
+        # if kwargs.pop('adjust_content', True):
+        #     self.adjust_content_on_save()
 
         # populate summary
         self._populate_summary()

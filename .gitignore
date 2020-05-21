@@ -1,3 +1,5 @@
+fuckedmigrations/
+kobo/apps/formschema/snaps/
 db.sqlite3
 *.pyc
 exported_survey_drafts

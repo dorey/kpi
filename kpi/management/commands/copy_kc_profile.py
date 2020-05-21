@@ -53,11 +53,11 @@ class Command(BaseCommand):
                 user=user)
             if not extra_details.data.get('copied_kc_profile', False) or \
                     options.get('again'):
-                kc_detail = get_kc_profile_data(user.pk)
-                for k, v in kc_detail.items():
-                    if extra_details.data.get(k, None) is None:
-                        extra_details.data[k] = v
-                        extra_details.data['copied_kc_profile'] = True
+                # kc_detail = get_kc_profile_data(user.pk)
+                # for k, v in kc_detail.items():
+                #     if extra_details.data.get(k, None) is None:
+                #         extra_details.data[k] = v
+                #         extra_details.data['copied_kc_profile'] = True
                 copied_count += 1
                 extra_details.save()
         self.stdout.write('Copied {} profile{}.'.format(

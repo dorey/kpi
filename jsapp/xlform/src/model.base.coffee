@@ -50,6 +50,13 @@ module.exports = do ->
     parse: ->
     linkUp: (ctx)->
     finalize: ->
+    getTranslatedValue: (xx)->
+      get_tx = @getSurvey().curtx
+      if _.isObject(@attributes) and get_tx of @attributes
+        return @get(get_tx) or ''
+      else
+        return @getValue('value')
+
     getValue: (what)->
       if what
         resp = @get(what)
@@ -112,9 +119,11 @@ module.exports = do ->
 
     constructor: ({@key, value}, opts)->
       @_parent = opts._parent
+
       if @key of $rowDetailMixins
         _.extend(@, $rowDetailMixins[@key])
       super()
+
       # We should consider pulling the value from the CSV at this stage
       # depending on the question type. truthy-CSV values should be set here
       # In the quick fix, this is done in the view for 'required' rowDetails
@@ -125,6 +134,8 @@ module.exports = do ->
         if _.isString(value) || _.isNumber(value)
           vals2set.value = value
         else if _.isObject(value) and "value" of value
+          _.extend vals2set, value
+        else if _.isObject(value)
           _.extend vals2set, value
         else
           vals2set.value = value

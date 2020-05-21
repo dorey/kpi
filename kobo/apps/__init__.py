@@ -10,4 +10,4 @@ class KpiConfig(AppConfig):
     name = 'kpi'
 
 
-register(TwoDatabaseConfigurationChecker().as_check(), Tags.database)
+# register(TwoDatabaseConfigurationChecker().as_check(), Tags.database)
