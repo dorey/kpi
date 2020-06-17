@@ -5,6 +5,8 @@ from rest_framework import serializers
 from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.reverse import reverse
 
+from a1d05eba1 import Content
+
 from kpi.constants import PERM_PARTIAL_SUBMISSIONS, PERM_VIEW_SUBMISSIONS
 from kpi.fields import RelativePrefixHyperlinkedRelatedField, WritableJSONField, \
     PaginatedApiField
@@ -18,7 +20,58 @@ from .asset_version import AssetVersionListSerializer
 from .asset_permission_assignment import AssetPermissionAssignmentSerializer
 
 
-class AssetSerializer(serializers.HyperlinkedModelSerializer):
+# WARNING! If you're changing something here, please update
+# `Asset.optimize_queryset_for_list()`; otherwise, you'll cause an
+# additional database query for each asset in the list.
+ASSET_FIELDS = ('asset_type',
+                'data',
+                'date_created',
+                'date_modified',
+                'deployed_version_id',
+                'deployment__active',
+                'deployment__identifier',
+                'deployment__submission_count',
+                'downloads',
+                'has_deployment',
+                'kind',
+                'name',
+                'owner',
+                'owner__username',
+                'parent',
+                'permissions',
+                'settings',
+                'summary',
+                'tag_string',
+                'uid',
+                'url',
+                'version_id',
+                )
+
+ASSET_DETAIL_FIELDS = (*ASSET_FIELDS,
+                        'ancestors',
+                        'assignable_permissions',
+                        'content',
+                        'content_v2',
+                        'deployed_versions',
+                        'deployment__data_download_links',
+                        'deployment__links',
+                        'diff',
+                        'embeds',
+                        'hooks_link',
+                        'koboform_link',
+                        'map_custom',
+                        'map_styles',
+                        'report_custom',
+                        'report_styles',
+                        'version__content_hash',
+                        'version_count',
+                        'xform_link',
+                        'xls_link',
+                        )
+
+# Called "AssetSerializerBase" to enforce imports from subclass:
+#   AssetSerializerContentV1 or AssetSerializerContentV2
+class AssetSerializerBase(serializers.HyperlinkedModelSerializer):
 
     owner = RelativePrefixHyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
@@ -27,11 +80,12 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field='uid', view_name='asset-detail')
     asset_type = serializers.ChoiceField(choices=ASSET_TYPES)
     settings = WritableJSONField(required=False, allow_blank=True)
-    content = WritableJSONField(required=False)
     report_styles = WritableJSONField(required=False)
     report_custom = WritableJSONField(required=False)
     map_styles = WritableJSONField(required=False)
     map_custom = WritableJSONField(required=False)
+    diff = serializers.SerializerMethodField()
+    content_v2 = serializers.SerializerMethodField()
     xls_link = serializers.SerializerMethodField()
     summary = serializers.ReadOnlyField()
     koboform_link = serializers.SerializerMethodField()
@@ -74,46 +128,8 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Asset
         lookup_field = 'uid'
-        fields = ('url',
-                  'owner',
-                  'owner__username',
-                  'parent',
-                  'ancestors',
-                  'settings',
-                  'asset_type',
-                  'date_created',
-                  'summary',
-                  'date_modified',
-                  'version_id',
-                  'version__content_hash',
-                  'version_count',
-                  'has_deployment',
-                  'deployed_version_id',
-                  'deployed_versions',
-                  'deployment__identifier',
-                  'deployment__links',
-                  'deployment__active',
-                  'deployment__data_download_links',
-                  'deployment__submission_count',
-                  'report_styles',
-                  'report_custom',
-                  'map_styles',
-                  'map_custom',
-                  'content',
-                  'downloads',
-                  'embeds',
-                  'koboform_link',
-                  'xform_link',
-                  'hooks_link',
-                  'tag_string',
-                  'uid',
-                  'kind',
-                  'xls_link',
-                  'name',
-                  'assignable_permissions',
-                  'permissions',
-                  'settings',
-                  'data',)
+        fields = ASSET_DETAIL_FIELDS
+
         extra_kwargs = {
             'parent': {
                 'lookup_field': 'uid',
@@ -123,19 +139,11 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
             },
         }
 
-    def update(self, asset, validated_data):
-        asset_content = asset.content
-        _req_data = self.context['request'].data
-        _has_translations = 'translations' in _req_data
-        _has_content = 'content' in _req_data
-        if _has_translations and not _has_content:
-            translations_list = json.loads(_req_data['translations'])
-            try:
-                asset.update_translation_list(translations_list)
-            except ValueError as err:
-                raise serializers.ValidationError(str(err))
-            validated_data['content'] = asset_content
-        return super().update(asset, validated_data)
+    def get_content_v2(self, asset):
+        return asset.content_v2
+
+    def get_diff(self, asset):
+        return asset.latest_change()
 
     def get_fields(self, *args, **kwargs):
         fields = super().get_fields(*args, **kwargs)
@@ -324,35 +332,17 @@ class AssetSerializer(serializers.HyperlinkedModelSerializer):
                        args=(obj.uid,),
                        request=request)
 
+class AssetSerializerContentV1(AssetSerializerBase):
+    content = WritableJSONField(required=False, source='content_v1')
 
-class AssetListSerializer(AssetSerializer):
-    class Meta(AssetSerializer.Meta):
-        # WARNING! If you're changing something here, please update
-        # `Asset.optimize_queryset_for_list()`; otherwise, you'll cause an
-        # additional database query for each asset in the list.
-        fields = ('url',
-                  'date_modified',
-                  'date_created',
-                  'owner',
-                  'summary',
-                  'owner__username',
-                  'parent',
-                  'uid',
-                  'tag_string',
-                  'settings',
-                  'kind',
-                  'name',
-                  'asset_type',
-                  'version_id',
-                  'has_deployment',
-                  'deployed_version_id',
-                  'deployment__identifier',
-                  'deployment__active',
-                  'deployment__submission_count',
-                  'permissions',
-                  'downloads',
-                  'data',
-                  )
+class AssetSerializerContentV2(AssetSerializerBase):
+    content = WritableJSONField(required=False, source='content_v2')
+
+
+
+class AssetListSerializer(AssetSerializerBase):
+    class Meta(AssetSerializerBase.Meta):
+        fields = ASSET_FIELDS
 
     def get_permissions(self, obj):
         try:
@@ -380,7 +370,7 @@ class AssetListSerializer(AssetSerializer):
                                                    context=context).data
 
 
-class AssetUrlListSerializer(AssetSerializer):
+class AssetUrlListSerializer(AssetSerializerBase):
 
-    class Meta(AssetSerializer.Meta):
+    class Meta(AssetSerializerBase.Meta):
         fields = ('url',)

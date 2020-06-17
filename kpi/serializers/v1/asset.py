@@ -1,13 +1,15 @@
 # coding: utf-8
 from rest_framework import serializers
 
-from kpi.serializers.v2.asset import AssetSerializer as AssetSerializerV2
+from kpi.serializers.v2.asset import AssetSerializerContentV1 as \
+    AssetSerializerContent1Api2
+
 from .object_permission import ObjectPermissionNestedSerializer
 
 
-class AssetSerializer(AssetSerializerV2):
+class AssetSerializer(AssetSerializerContent1Api2):
 
-    class Meta(AssetSerializerV2.Meta):
+    class Meta(AssetSerializerContent1Api2.Meta):
         fields = ('url',
                   'owner',
                   'owner__username',

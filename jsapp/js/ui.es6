@@ -178,10 +178,14 @@ class AssetName extends React.Component {
     super(props);
   }
   render () {
-    var name = this.props.name,
-        extra = false,
+    var extra = false,
         isEmpty;
-    var summary = this.props.summary;
+    let { name, summary } = this.props;
+    const { languages } = summary;
+    // var summary = this.props.summary;
+    const languageIndicator = (languages && languages.length > 1) ? (
+      <span>{`🌎`}</span>
+    ) : null;
     var row_count;
     if (!name) {
       row_count = summary.row_count;
@@ -201,6 +205,7 @@ class AssetName extends React.Component {
     }
     return (
         <span className={isEmpty ? 'asset-name asset-name--empty' : 'asset-name'}>
+          {languageIndicator}
           {name}
           {extra ?
             extra

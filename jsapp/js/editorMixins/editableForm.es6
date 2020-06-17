@@ -237,6 +237,12 @@ export default assign({
       let surveyJSONWithMatrix = koboMatrixParser({source: surveyJSON}).source;
       surveyJSON = unnullifyTranslations(surveyJSONWithMatrix, this.state.asset.content);
     }
+    (()=>{
+      let survey = JSON.parse(surveyJSON);
+      survey.schema = '1+::';
+      surveyJSON = JSON.stringify(survey);
+    })()
+
     let params = {content: surveyJSON};
 
     if (this.state.name) {
